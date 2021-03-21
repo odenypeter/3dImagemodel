@@ -1,0 +1,8 @@
+django
+numpy
+pandas
+scipy
+numpy-stl
+pillow
+opencv-contrib-python
+django-cleanup
