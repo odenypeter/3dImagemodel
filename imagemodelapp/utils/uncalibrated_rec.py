@@ -17,12 +17,12 @@ from ..models import GeneratedFile
 
 
 class UncalibratedReconstruction:
-    '''
+    """
     Class that contains high level methods to perform 3D reconstruction from a sequence of uncalibrated images.
-    '''
+    """
 
     def __init__(self, sequence_length, width, height, triang_method=0, opt_triang=0, opt_f=1, self_foc=0):
-        '''
+        """
         Constructor
         Args:
             sequence_length: number of images (views)
@@ -33,7 +33,7 @@ class UncalibratedReconstruction:
             opt_f: optimize fundamental matrix estimation
             self_foc: for self-calibration, type of focal length expected across views (0: fixed, 1: varying )
 
-        '''
+        """
         self._eg_utils = EpipolarGeometry()
 
         # things that are needed throught the class
@@ -48,7 +48,7 @@ class UncalibratedReconstruction:
         self._self_foc = self_foc
 
     def two_view_geometry_computation(self, view1_feat2D, view2_feat2D):
-        '''
+        """
         Method to compute the fundamental matrix and epipoles for two views
         Args:
             view1_feat2D: 2D feature coordinates in view 1
@@ -58,14 +58,14 @@ class UncalibratedReconstruction:
             epipole_1: view1 epipole
             epipole_2: view2 epipoles
 
-        '''
+        """
         F = self._eg_utils.fundamental_matrix(view1_feat2D, view2_feat2D, self._optimize_f)
         epipole_1 = self._eg_utils.get_epipole(F)
         epipole_2 = self._eg_utils.get_epipole(np.transpose(F))
         return F, epipole_1, epipole_2
 
     def compute_reference_frame(self, epipole, F):
-        '''
+        """
         Method to compute the reference frame of the reconstruction (i.e. plane at infinity in an affine or metric space).
         Args:
             epipole: the epipole
@@ -74,7 +74,7 @@ class UncalibratedReconstruction:
             p: the reference plane
             h: the homography [e]xF
 
-        '''
+        """
         H = self._eg_utils.compute_homography(epipole, F)  # compute the homography [e]xF
         # get the reference plane
         p = np.sum(np.divide(np.eye(3) - H, np.transpose(np.asarray([epipole, epipole, epipole]))), axis=0) / 3
@@ -84,7 +84,7 @@ class UncalibratedReconstruction:
         return p, H
 
     def init_plane(self, p, H, epi):
-        '''
+        """
         Error function to make the difference between the first two projection matrices as small as possible
         Note: assuming that the two views used for the initial reconstruction are not too far apart (this their projection matrices are almost equal), has proven to give good results
         Args:
@@ -93,7 +93,7 @@ class UncalibratedReconstruction:
             epi: epipola
         Returns:
             error: difference between two projection matrices
-        '''
+        """
         epi = np.reshape(epi, (3, 1))
         p = np.reshape(p, (1, 4))
 
@@ -105,7 +105,7 @@ class UncalibratedReconstruction:
         return error
 
     def estimate_initial_projection_matrices(self, H, epipole_2, p):
-        '''
+        """
         Method to estimate the projection matrices for the two views (i.e. P1=[I | 0], P2=[H+epi1|e])
         Args:
             H: homography [e]x[F]
@@ -114,7 +114,7 @@ class UncalibratedReconstruction:
         Returns:
             P: projection matrices for these two views
 
-        '''
+        """
         P = np.zeros((3, 4, self._sequence_length))
         P[:, :, 0] = [
             [1, 0, 0, 0],
@@ -453,9 +453,6 @@ def construct_3d_model(saved_model):
     sequence = ImageSequence(get_images_feature_json(saved_model))
 
     start_time = time.time()
-    print('Sequence Length:::', sequence.length)
-    print('Sequence width:::', sequence.width)
-    print('Sequence Height:::', sequence.height)
     rec_engine = UncalibratedReconstruction(sequence.length, sequence.width, sequence.height)
 
     # normalize coordinates
@@ -505,14 +502,16 @@ def construct_3d_model(saved_model):
     file_name = f'reconstructed_model_{saved_model.id}.stl'
     rec_file_txt = f'rec_model_cloud_{saved_model.id}.txt'
 
+    # save the txt file with 3D model matrix
     txt_path = join(settings.MEDIA_ROOT, 'features', rec_file_txt)
-
     np.savetxt(txt_path, metric_feat3D, delimiter=',')
     print("	 - 3D point cloud saved in rec_model_cloud.txt ")
 
+    # save the 3D model .stl
     file_path = join(settings.MEDIA_ROOT, 'final_models', file_name)
     recModel.export_stl_file(file_path)
     print("  - STL model saved in reconstructed_model.stl")
+
     # save the file name
     saved_model.file.name = file_name
     saved_model.save()
@@ -530,6 +529,7 @@ def get_images_feature_json(created_model: GeneratedFile):
 
     all_features = []
     for idx, item in enumerate(submitted_images):
+        # get the features
         features = extract_features(item.image.path)
         for indx, feat in enumerate(features):
             all_features.append(
@@ -556,22 +556,26 @@ def extract_features(image_path, vector_size=74):
     image = cv2.imread(image_path)
     try:
         # Using KAZE, cause SIFT, ORB and other was moved to additional module
-        # which is adding addtional pain during install
         alg = cv2.KAZE_create()
-        # Dinding image keypoints
+
+        # Finding image keypoints
         kps = alg.detect(image)
-        # Getting first 32 of them.
+        # Getting first {vector_size} of them.
         # Number of keypoints is varies depend on image size and color pallet
         # Sorting them based on keypoint response value(bigger is better)
         kps = sorted(kps, key=lambda x: -x.response)[:vector_size]
 
         # computing descriptors vector
         kps, dsc = alg.compute(image, kps)
+
+        # construct multidimensional array with the coordinate data
         all_points = []
         for kp in kps:
             all_points.append([kp.pt[0], kp.pt[1]])
+
     except cv2.error as e:
         print('Error: ', e)
         return None
 
+    # return the coordinate data
     return all_points
