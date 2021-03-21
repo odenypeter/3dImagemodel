@@ -2,6 +2,7 @@
 This app takes 3 2D images and returns a 3D model of the 3 images
 
 Running the app locally
+
 Prerequisites
 1. Ensure you have python3 installed
 2. Recommended(use virtualenv)
@@ -16,7 +17,7 @@ Setting up via virtualenv
     - . venv/bin/activate
     
 6. intall requirements: Run
-    - pip install -r requirements.tx
+    - pip install -r requirements.txt
 
 7. Run migrations:
     - python manage.py migrate
