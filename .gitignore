@@ -2,4 +2,6 @@ testvenv/
 venv/
 db.sqlite3
 .idea/
-*.pyc
+**/*.pyc
+**/*.png
+**/*.jpg
