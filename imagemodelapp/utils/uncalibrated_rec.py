@@ -536,8 +536,8 @@ def get_images_feature_json(created_model: GeneratedFile):
                 dict(
                     x=round(float(feat[0]), 4),
                     y=round(float(feat[1]), 4),
-                    feature_id=indx + 1,
-                    image_id=idx + 1,
+                    feature_id=round(indx + 1, 4),
+                    image_id=round(idx + 1, 4),
                     image_filename=item.image.path
 
                 )
@@ -546,7 +546,7 @@ def get_images_feature_json(created_model: GeneratedFile):
     return all_features
 
 
-def extract_features(image_path, vector_size=74):
+def extract_features(image_path, vector_size=37):
     """
     Feature extractor
     :param image_path:
